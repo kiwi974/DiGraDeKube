@@ -5,6 +5,8 @@ import com.perso.compute.digradekube.thread.Listener;
 import com.perso.compute.digradekube.thread.Server;
 import com.perso.compute.digradekube.utils.DigradeKubeCmd;
 import com.perso.compute.digradekube.value.SparseVector;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.cli.CommandLine;
 
@@ -12,15 +14,18 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class Node {
 
     private static final Logger LOGGER = Logger.getLogger(Node.class.getName());
 
+    private static final String ADMIN_ID = "localhost:8980";
+
     private static Queue<SparseVector> cache = new LinkedList<SparseVector>();
     private static boolean converged = false;
     private static final Random RAND = new Random();
-    private static List<String> neighborsMap = new ArrayList<>();
+    private static Map<Integer, String> neighborsMap;
     private static List<StreamObserver<SparseVectorProtoString>> neighborsStreams = new ArrayList<>();
 
     /**
@@ -33,13 +38,26 @@ public class Node {
         /* Read arguments */
         CommandLine cmd = DigradeKubeCmd.readCmd(args);
         String self_id= cmd.getOptionValue("self");
+        String self_name = self_id.split(":")[0];
         int self_port = Integer.parseInt(self_id.split(":")[1]);
-        String neighbors_id = cmd.getOptionValue("neighbors", "");
+
+        /* Declare to administrator */
+        ManagedChannel channel = ManagedChannelBuilder.forTarget(ADMIN_ID).usePlaintext().build();
+        AdministratorGrpc.AdministratorBlockingStub blockingStub = AdministratorGrpc.newBlockingStub(channel);
+        NodeListing nodeListing = blockingStub.register(NodeIdentity.newBuilder().setName(self_name).setPort(self_port).build());
+
+        LOGGER.info("[NODE] NodeListing : " + nodeListing.getList());
 
         /* Build neighbors map */
-        if (!neighbors_id.equals("")) {
-            neighborsMap.addAll(Arrays.asList(neighbors_id.split(",")));
+        if (!nodeListing.getList().equals("{}")) {
+            neighborsMap = (HashMap<Integer, String>)
+                    Arrays.asList(nodeListing.getList().substring(1, nodeListing.getList().length()-1).split(","))
+                            .stream().map(s -> s.split("=")).collect(Collectors.toMap(e -> Integer.parseInt(e[0].trim()), e -> e[1].trim()));
+        } else {
+            neighborsMap = Collections.emptyMap();
         }
+
+        LOGGER.info("[NODE] Build neighbors map : " + neighborsMap);
 
         /* Start server thread */
         Thread serverThread = new Thread(new Server(self_port, neighborsStreams, cache));

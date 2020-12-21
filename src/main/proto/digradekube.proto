@@ -12,6 +12,19 @@ service NodeExchanger {
   rpc SendVector (stream SparseVectorProtoString) returns (stream SparseVectorProtoString) {}
 }
 
+service Administrator {
+  rpc Register (NodeIdentity) returns (NodeListing) {}
+}
+
 message SparseVectorProtoString {
   string vector = 1;
+}
+
+message NodeIdentity {
+  string name = 1;
+  int32 port = 2;
+}
+
+message NodeListing {
+  string list = 1;
 }

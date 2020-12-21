@@ -17,11 +17,11 @@ public class Listener implements Runnable {
     private static final Random RAND = new Random();
 
     private Queue<SparseVector> vectorsCache;
-    private List<String> neighborsMap;
+    private Map<Integer, String> neighborsMap;
     private List<StreamObserver<SparseVectorProtoString>> neighborsStreams;
-    private List<String> seenNeighbors;
+    private List<Map.Entry<Integer, String>> seenNeighbors;
 
-    public Listener(Queue<SparseVector> vectorsCache, List<String> neighborsMap, List<StreamObserver<SparseVectorProtoString>> neighborsStreams) {
+    public Listener(Queue<SparseVector> vectorsCache, Map<Integer, String> neighborsMap, List<StreamObserver<SparseVectorProtoString>> neighborsStreams) {
         this.vectorsCache = vectorsCache;
         this.neighborsMap = neighborsMap;
         this.neighborsStreams = neighborsStreams;
@@ -32,10 +32,11 @@ public class Listener implements Runnable {
     public void run() {
         while(true) {
             /* Check if their is a new neighbor in the map */
-            for (String neighbor : this.neighborsMap) {
+            for (Map.Entry<Integer, String> neighbor : this.neighborsMap.entrySet()) {
                 if (!this.seenNeighbors.contains(neighbor)) {
                     /* Open channel with this new neighbor */
-                    ManagedChannel channel = ManagedChannelBuilder.forTarget(neighbor).usePlaintext().build();
+                    String target = neighbor.getValue() + ":" + neighbor.getKey();
+                    ManagedChannel channel = ManagedChannelBuilder.forTarget(target).usePlaintext().build();
                     NodeExchangerGrpc.NodeExchangerStub asyncStub = NodeExchangerGrpc.newStub(channel);
                     StreamObserver<SparseVectorProtoString> requestObserver = new StreamObserverSparseVectorStringBuilder(this.vectorsCache).build();
                     LOGGER.info("[LISTENER] Generated observer : " + requestObserver);
