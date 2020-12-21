@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.perso.compute.digradekube";
+option java_outer_classname = "DigradeKubeProto";
+option objc_class_prefix = "HLW";
+
+package digradekube;
+
+// The digradekube service definition.
+service NodeExchanger {
+  rpc SendVector (stream SparseVectorProtoString) returns (stream SparseVectorProtoString) {}
+}
+
+message SparseVectorProtoString {
+  string vector = 1;
+}
