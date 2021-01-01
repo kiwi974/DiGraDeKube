@@ -93,8 +93,10 @@ public class Administrator {
 
         @Override
         public void register(NodeIdentity request, StreamObserver<NodeListing> responseObserver) {
+            LOGGER.info("[ADMINISTRATOR] Before enrolment : " + this.routingTable);
             responseObserver.onNext(NodeListing.newBuilder().setList(this.routingTable.toString()).build());
             this.routingTable.put(request.getPort(), request.getName());
+            LOGGER.info("[ADMINISTRATOR] After enrolment : " + this.routingTable);
             responseObserver.onCompleted();
         }
     }

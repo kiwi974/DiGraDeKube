@@ -94,12 +94,20 @@ public class Node {
             converged = currentElement.norm1() > 30;
         }
 
-        if (converged) {
-            /* Terminate neighbors streams */
+        LOGGER.info("Convergence condition reached with element : " + currentElement + " (norm1 = " + currentElement.norm1() + ")");
+
+        /* Terminate neighbors streams. */
+        for (StreamObserver streamObserver : neighborsStreams) {
+            streamObserver.onCompleted();
         }
 
-        LOGGER.info("Convergence condition reached with element : " + currentElement + " (norm1 = " + currentElement.norm1() + ")");
+        /* Terminate listener thread. */
         listenerThread.interrupt();
+
+        /* Terminate server thread. */
+        // !!! Server will be unreachable for the other workers, it might be an error !!!
+        serverThread.interrupt();
+
 
     }
 
